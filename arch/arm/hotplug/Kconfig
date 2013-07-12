@@ -16,6 +16,12 @@ config BRICKED_HOTPLUG
 	  This enables kernel based multi core control.
 	  (up/down hotplug based on load)
 
+config DYNAMIC_HOTPLUG
+	bool "Enable dynamic-hotplug cpu hotplug driver"
+	default n
+	help
+	  Generic Dynamic-hotplug cpu hotplug driver for ARM SOCs
+
 config INTELLI_PLUG
 	bool "Enable intelli-plug cpu hotplug driver"
 	default n
