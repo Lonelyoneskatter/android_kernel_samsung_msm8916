@@ -71,6 +71,7 @@ struct cpufreq_policy {
 
 	unsigned int		min;    /* in kHz */
 	unsigned int		max;    /* in kHz */
+	unsigned int		util;
 	unsigned int		cur;    /* in kHz, only needed if cpufreq
 					 * governors are used */
 	unsigned int		policy; /* see above */
@@ -134,6 +135,7 @@ void cpufreq_sysfs_remove_file(const struct attribute *attr);
 #ifdef CONFIG_CPU_FREQ
 unsigned int cpufreq_get(unsigned int cpu);
 unsigned int cpufreq_quick_get(unsigned int cpu);
+unsigned int cpufreq_quick_get_util(unsigned int cpu);
 unsigned int cpufreq_quick_get_max(unsigned int cpu);
 void disable_cpufreq(void);
 
