@@ -207,4 +207,10 @@ config DEVFREQ_SPDM
 	  This driver allows any SPDM based client to vote for bandwidth.
 	  Used with the MSM SPDM Hypervisor Governor.
 
+config SIMPLE_GPU_ALGORITHM
+	bool "Simple GPU algorithm"
+	depends on DEVFREQ_GOV_MSM_ADRENO_TZ
+	help
+	  Simple user configurable GPU controlling algorithm
+
 endif # PM_DEVFREQ
