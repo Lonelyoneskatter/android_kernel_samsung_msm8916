@@ -36,6 +36,12 @@ config MSM_HOTPLUG
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
 
+config MSM_SLEEPER
+	bool "CPU hotplug driver"
+	default y
+	help
+	  CPU hotplug driver
+
 config SKATER_HOTPLUG
 	bool "A highly customizable hotplug, built for battery & performance"
 	default n
