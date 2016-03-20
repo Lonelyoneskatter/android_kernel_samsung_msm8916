@@ -24,6 +24,10 @@
 
 #include "mdss_dsi.h"
 
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
+
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 #include "mdss_debug.h"
 #include "samsung/ss_dsi_panel_common.h"
@@ -727,6 +731,10 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	struct samsung_display_driver_data *vdd = NULL;
 #endif
 
+#ifdef CONFIG_STATE_NOTIFIER
+	state_resume();
+#endif
+
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -836,6 +844,10 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 //#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 //	pinfo->blank_state = MDSS_PANEL_BLANK_BLANK;
 //#endif
+
+#ifdef CONFIG_STATE_NOTIFIER
+	state_suspend();
+#endif
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)

@@ -870,6 +870,9 @@ config MACH_KOR_EARJACK_WR
 	help
 	  Say Y to enable earjack-noise workaround at charging
 
+config STATE_NOTIFIER
+	bool "State Notifier"
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
