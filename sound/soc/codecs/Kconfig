@@ -616,3 +616,7 @@ config SOUND_CONTROL_HAX_3_GPL
  	default y
  	help
 	FauxSound wcd9xxx chipset sound control hacks 3.0 for deeper hax
+
+config SOUND_CONTROL
+	bool "Sound control for wcd9335"
+	default n
