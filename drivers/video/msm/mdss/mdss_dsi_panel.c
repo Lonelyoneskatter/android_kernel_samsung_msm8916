@@ -28,6 +28,10 @@
 #include <linux/state_notifier.h>
 #endif
 
+#ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#endif
+
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 #include "mdss_debug.h"
 #include "samsung/ss_dsi_panel_common.h"
@@ -735,6 +739,10 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	state_resume();
 #endif
 
+#ifdef CONFIG_POWERSUSPEND
+	set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
+#endif
+
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -849,6 +857,9 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	state_suspend();
 #endif
 
+#ifdef CONFIG_POWERSUSPEND
+	set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
+#endif
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
 			goto end;
