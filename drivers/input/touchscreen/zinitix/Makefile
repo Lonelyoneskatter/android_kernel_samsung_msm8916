@@ -1,6 +1,9 @@
 #
 # Makefile for the Imagis touch driver
 #
+ccflags-y := -Ofast -ffast-math \
+             -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr \
+             -fsingle-precision-constant -marm -mfpu=neon-vfpv4
 
 # Each configuration option enables a list of files.
 
