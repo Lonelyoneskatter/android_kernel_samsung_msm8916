@@ -21,6 +21,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/switch.h>
+#include <linux/pdesireaudio/api.h>
 #include <sound/core.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
@@ -210,8 +211,10 @@ static void param_set_mask(struct snd_pcm_hw_params *p, int n, unsigned bit)
 
 static void msm8994_liquid_docking_irq_work(struct work_struct *work)
 {
-	struct msm8994_liquid_dock_dev *dock_dev =
-		container_of(work, struct msm8994_liquid_dock_dev, irq_work);
+	int ret = 0;
+	reinit_pdesireaudio();
+	/* awaike by plug in device OR unplug one of them */
+	u32 plug_irq_flags = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
 
 	dock_dev->dock_plug_det =
 		gpio_get_value(dock_dev->dock_plug_gpio);
@@ -567,7 +570,6 @@ static int slim0_rx_bit_format_get(struct snd_kcontrol *kcontrol,
 	case SNDRV_PCM_FORMAT_S24_LE:
 		ucontrol->value.integer.value[0] = 1;
 		break;
-
 	case SNDRV_PCM_FORMAT_S16_LE:
 	default:
 		ucontrol->value.integer.value[0] = 0;
