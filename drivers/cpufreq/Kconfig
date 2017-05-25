@@ -129,6 +129,15 @@ config CPU_FREQ_DEFAULT_GOV_DESPAIR
 	select CPU_FREQ_GOV_DESPAIR
 	help
 
+config CPU_FREQ_DEFAULT_GOV_SKATERACTIVE
+	bool "skateractive"
+	select CPU_FREQ_GOV_SKATERACTIVE
+	help
+	  Use the CPUFreq governor 'skateractive' as default. This allows
+	  you to get a full dynamic cpu frequency capable system by simply
+	  loading your cpufreq low-level hardware driver, using the
+	  'skateractive' governor for latency-sensitive workloads.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -252,6 +261,16 @@ config CPU_FREQ_GOV_LIONFISH
 config CPU_FREQ_GOV_DESPAIR
 	tristate "'despair' cpufreq governor"
 	depends on CPU_FREQ
+
+config CPU_FREQ_GOV_SKATERACTIVE
+	tristate "'skateractive' cpufreq policy governor"
+	help
+	  'skateractive' - This driver adds a dynamic cpufreq policy governor
+	  designed for latency-sensitive workloads.
+	  This governor is a full backport of the 3.10.y "interactive" governor
+	  with many modifications and cleaned out all code that wasn't needed
+          it has ability to triple timer_rate on screen off and user can set max
+          frequency on screen off.
 
 config CPU_BOOST
 	tristate "Event base short term CPU freq boost"
