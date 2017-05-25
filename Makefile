@@ -625,6 +625,9 @@ KBUILD_CFLAGS += $(stackp-flag)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-const-variable)
 
+# Disable format-truncation warnings
+KBUILD_CFLAGS   += $(call cc-disable-warning,format-truncation,)
+
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
 else
