@@ -142,11 +142,13 @@ void set_power_suspend_state(int new_state)
 		if (state == POWER_SUSPEND_INACTIVE && new_state == POWER_SUSPEND_ACTIVE) {
 			state = new_state;
                         power_suspended = true;
-			queue_work(power_suspend_work_queue, &power_suspend_work);
+			queue_work(system_power_efficient_wq,
+				&power_suspend_work);
 		} else if (state == POWER_SUSPEND_ACTIVE && new_state == POWER_SUSPEND_INACTIVE) {
 			state = new_state;
                         power_suspended = true;
-			queue_work(power_suspend_work_queue, &power_resume_work);
+			queue_work(system_power_efficient_wq,
+				&power_resume_work);
 		}
 		spin_unlock_irqrestore(&state_lock, irqflags);
 	}
