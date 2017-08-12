@@ -1,5 +1,6 @@
 # Skatter Stuffs
 CONFIG_FB_MSM_MDSS_KCAL_CTRL=y
+CONFIG_STATE_NOTIFIER=y
 
 # Support LZ4 KERNEL Compress
 # CONFIG_KERNEL_LZ4 is not set
