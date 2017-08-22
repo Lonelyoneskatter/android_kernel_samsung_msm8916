@@ -94,3 +94,10 @@ x509.genkey
 build
 build.log
 drivers/gator/gator.mod.c
+
+#
+# Other annoying files
+#
+firmware/synaptics/startup_fw_update-fhd.img
+firmware/synaptics/startup_fw_update.img
+kernel/x509_certificate_list
