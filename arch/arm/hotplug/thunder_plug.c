@@ -34,14 +34,16 @@
 #define DRIVER_SUBVER			4
 #define DEFAULT_CPU_LOAD_THRESHOLD	90
 #define STARTDELAY			1000
-#define DEF_SAMPLING_MS			20
-#define MIN_SAMLING_MS			10
+#define DEF_SAMPLING_MS			1350
+#define MIN_SAMLING_MS			50
 #define MIN_CPU_UP_TIME			300
 #define DEFAULT_BOOST_LOCK_DUR		500 * 1000L
-#define DEFAULT_NR_CPUS_BOOSTED		CONFIG_NR_CPUS
+#define DEFAULT_MAX_CPUS		CONFIG_NR_CPUS
+#define DEFAULT_MIN_CPUS		DEFAULT_MAX_CPUS / 2
+#define DEFAULT_NR_CPUS_BOOSTED		DEFAULT_MAX_CPUS
 #define MIN_INPUT_INTERVAL		150 * 1000L
 
-static bool isSuspended = false;
+extern bool screen_on;
 
 static int now[8], last_time[8];
 struct cpufreq_policy old_policy[NR_CPUS];
@@ -79,10 +81,10 @@ static struct thunder_param_struct {
 } thunder_param = {
 	.cpus_boosted = DEFAULT_NR_CPUS_BOOSTED,
 	.boost_lock_dur = DEFAULT_BOOST_LOCK_DUR,
-	.suspend_cpu_num = 1,
-	.resume_cpu_num = 2,
-	.max_core_online = 2,
-	.min_core_online = 1,
+	.suspend_cpu_num = DEFAULT_MIN_CPUS,
+	.resume_cpu_num = DEFAULT_MAX_CPUS,
+	.max_core_online = DEFAULT_MAX_CPUS,
+	.min_core_online = DEFAULT_MIN_CPUS,
 	.sampling_time = DEF_SAMPLING_MS,
 	.load_threshold = DEFAULT_CPU_LOAD_THRESHOLD,
 	.tplug_hp_enabled = HOTPLUG_ENABLED,
@@ -424,8 +426,7 @@ reschedule:
 #ifdef CONFIG_STATE_NOTIFIER
 static void __ref thunderplug_suspend(void)
 {
-	if (isSuspended == false) {
-		isSuspended = true;
+	if (!screen_on) {
 		cancel_delayed_work_sync(&tplug_work);
 		offline_cpus();
 		pr_info("%s: suspend\n", THUNDERPLUG);
@@ -434,8 +435,7 @@ static void __ref thunderplug_suspend(void)
 
 static void __ref thunderplug_resume(void)
 {
-	if (isSuspended == true) {
-		isSuspended = false;
+	if (screen_on) {
 		cpus_online_all();
 		pr_info("%s: resume\n", THUNDERPLUG);
 		queue_delayed_work_on(0, tplug_wq, &tplug_work,
@@ -503,8 +503,9 @@ static void thunder_input_event(struct input_handle *handle, unsigned int type,
 {
 	u64 time_now;
 
-	if (isSuspended == true)
+	if (!screen_on)
 		return;
+
 	if (!thunder_param.tplug_hp_enabled)
 		return;
 
@@ -616,7 +617,8 @@ static ssize_t __ref thunderplug_hp_enabled_store(struct kobject *kobj,
 	if (thunder_param.tplug_hp_enabled == 1 && !last_val) {
 		pr_info("%s : Starting hotplug driver\n", THUNDERPLUG);
 		tplug_wq = alloc_workqueue("tplug",
-				WQ_HIGHPRI | WQ_FREEZABLE, 0);
+				WQ_HIGHPRI | WQ_UNBOUND | WQ_FREEZABLE, 0);
+
 		if (!tplug_wq) {
 			pr_err("%s: Failed to allocate hotplug workqueue\n",
 				__FUNCTION__);
@@ -739,6 +741,7 @@ static int __init thunderplug_init(void)
 {
 	int ret = 0;
 	int sysfs_result;
+	screen_on = true;
 
 	printk(KERN_DEBUG "[%s]\n",__func__);
 
