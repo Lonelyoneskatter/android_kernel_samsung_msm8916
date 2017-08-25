@@ -744,6 +744,11 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	struct samsung_display_driver_data *vdd = NULL;
 #endif
 
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return -EINVAL;
+	}
+
 #ifdef CONFIG_STATE_NOTIFIER
 	state_resume();
 #endif
@@ -751,11 +756,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 #ifdef CONFIG_POWERSUSPEND
 	set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
 #endif
-
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
 
 	display_on = true;
 	screen_on = true;
@@ -865,16 +865,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 //	pinfo->blank_state = MDSS_PANEL_BLANK_BLANK;
 //#endif
 
-#ifdef CONFIG_STATE_NOTIFIER
-	state_suspend();
-#endif
-
-#ifdef CONFIG_POWERSUSPEND
-	set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
-#endif
-
-	display_on = false;
-
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
 			goto end;
@@ -893,6 +883,16 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	mutex_unlock(&vdd->vdd_lock);
 	mdss_samsung_panel_off_post(pdata);
 #endif
+
+#ifdef CONFIG_STATE_NOTIFIER
+	state_suspend();
+#endif
+
+#ifdef CONFIG_POWERSUSPEND
+	set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
+#endif
+
+	display_on = false;
 
 	screen_on = false;
 end:
