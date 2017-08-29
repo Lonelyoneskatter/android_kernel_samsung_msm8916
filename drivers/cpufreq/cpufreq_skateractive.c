@@ -42,7 +42,6 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/cpufreq_skateractive.h>
 
-
 extern bool screen_on;
 
 struct cpufreq_skateractive_cpuinfo {
@@ -87,18 +86,18 @@ static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
 static unsigned int default_above_hispeed_delay[] = {
 	DEFAULT_ABOVE_HISPEED_DELAY };
 
-#define DEFAULT_SCREEN_OFF_MAX 702000
+#define DEFAULT_SCREEN_OFF_MAX 800000
 static unsigned long screen_off_max = DEFAULT_SCREEN_OFF_MAX;
 static unsigned long screen_off_max_prev = DEFAULT_SCREEN_OFF_MAX;
 
-#define DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE 1080000
+#define DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE 1094400
 static unsigned long screen_off_max_single_core = DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE;
 
 struct cpufreq_skateractive_tunables {
 	int usage_count;
 
 	/* Hi speed to bump to from lo speed when load burst (default max) */
-#define DEFAULT_HISPEED_FREQ 384000
+#define DEFAULT_HISPEED_FREQ 200000
 	unsigned int hispeed_freq;
 
 	/* Go to hi speed when CPU load at or above this value. */
@@ -1030,23 +1029,23 @@ static ssize_t store_timer_rate(struct cpufreq_skateractive_tunables *tunables,
 static ssize_t show_screen_off_timer_rate_multiplier(
 		struct cpufreq_skateractive_tunables *tunables, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", tunables->timer_rate_multiplier);
+	return snprintf(buf, PAGE_SIZE, "%lu\n", tunables->timer_rate_multiplier);
 }
 
 static ssize_t store_screen_off_timer_rate_multiplier(struct cpufreq_skateractive_tunables *tunables,
 		const char *buf, size_t count)
 {
 	int ret = 0;
-	unsigned int i;
+	unsigned long val;
 
-	ret = kstrtoul(buf, 10, &i);
+	ret = kstrtoul(buf, 0, &val);
 	if (ret)
 		return ret;
 
-	if (i < 1 || i > 10)
+	if (val < 1 || val > 10)
 		return -EINVAL;
 
-	tunables->timer_rate_multiplier = i;
+	tunables->timer_rate_multiplier = val;
 	return count;
 }
 
@@ -1448,9 +1447,6 @@ static int cpufreq_governor_skateractive(struct cpufreq_policy *policy,
 		}
 
 		if (!policy->governor->initialized) {
-#ifdef CONFIG_INTERACTION_HINTS
-			cpufreq_want_interact_hints(1);
-#endif
 			idle_notifier_register(&cpufreq_skateractive_idle_nb);
 			cpufreq_register_notifier(&cpufreq_notifier_block,
 					CPUFREQ_TRANSITION_NOTIFIER);
@@ -1463,9 +1459,6 @@ static int cpufreq_governor_skateractive(struct cpufreq_policy *policy,
 			if (policy->governor->initialized == 1) {
 				cpufreq_unregister_notifier(&cpufreq_notifier_block,
 						CPUFREQ_TRANSITION_NOTIFIER);
-#ifdef CONFIG_INTERACTION_HINTS
-				cpufreq_want_interact_hints(0);
-#endif
 				idle_notifier_unregister(&cpufreq_skateractive_idle_nb);
 			}
 
