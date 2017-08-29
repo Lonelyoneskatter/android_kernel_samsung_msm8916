@@ -5904,9 +5904,10 @@ int voice_sec_set_dha_data(uint32_t session_id, short mode,
 	for (i = 0; i < 12; i++)
 		v->sec_dha_data.dha_params[i] = (short)parameters[i];
 
-	if (v->voc_state == VOC_RUN)
+	if (v->voc_state == VOC_RUN) {
 		ret = voice_send_dha_data(v);
 		mutex_unlock(&v->lock);
+	}
 
 	return ret;
 
@@ -5999,9 +6000,10 @@ int voice_sec_set_addMode_data(uint32_t session_id, short enable)
 
 	mutex_lock(&v->lock);
 
-	if (v->voc_state == VOC_RUN)
+	if (v->voc_state == VOC_RUN) {
 		ret = voice_send_addMode_data(v, enable);
 		mutex_unlock(&v->lock);
+	}
 
 	return ret;
 

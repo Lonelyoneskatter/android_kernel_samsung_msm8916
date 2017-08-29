@@ -389,12 +389,12 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		if (vdd->panel_func.samsung_backlight_ic_power_on)
 			vdd->panel_func.samsung_backlight_ic_power_on(1);
 
-			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
-				gpio_set_value((ctrl_pdata->rst_gpio),
-					pdata->panel_info.rst_seq[i]);
-				if (pdata->panel_info.rst_seq[++i])
-					usleep(pinfo->rst_seq[i] * 1000);
-			}
+		for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
+			gpio_set_value((ctrl_pdata->rst_gpio),
+				pdata->panel_info.rst_seq[i]);
+			if (pdata->panel_info.rst_seq[++i])
+				usleep(pinfo->rst_seq[i] * 1000);
+		}
 
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 			if (vdd->panel_func.samsung_ql_lvds_register_set)

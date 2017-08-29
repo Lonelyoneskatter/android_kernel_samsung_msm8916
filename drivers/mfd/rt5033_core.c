@@ -435,11 +435,11 @@ static int rt5033_mfd_probe(struct i2c_client *i2c,
 
     pr_info("%s:%s pdata->irq_base = %d\n",
             "rt5033-mfd", __func__, pdata->irq_base);
-    /* if board-init had already assigned irq_base (>=0) ,
-    no need to allocate it;
-    assign -1 to let this driver allocate resource by itself*/
-    if (pdata->irq_base < 0)
-        pdata->irq_base = irq_alloc_descs(-1, 0, RT5033_IRQS_NR, 0);
+	/* if board-init had already assigned irq_base (>=0) ,
+	no need to allocate it;
+	assign -1 to let this driver allocate resource by itself*/
+	if (pdata->irq_base < 0)
+        	pdata->irq_base = irq_alloc_descs(-1, 0, RT5033_IRQS_NR, 0);
 	if (pdata->irq_base < 0) {
 		pr_err("%s:%s irq_alloc_descs Fail! ret(%d)\n",
 				"rt5033-mfd", __func__, pdata->irq_base);
