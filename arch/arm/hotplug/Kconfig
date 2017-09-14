@@ -36,6 +36,14 @@ config MSM_HOTPLUG
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
 
+config SKATER_HOTPLUG
+	bool "A highly customizable hotplug, built for battery & performance"
+	default n
+	help
+	  This hotplug is based off of AutoSMP, it has many customizations to
+	  ensure that you can either tune it for performance, or insane battery life.
+	  I've taken parts of Intelliplug, MSM_Hotplug, and will be adding more to this.
+
 config THUNDER_PLUG
 	bool "Enable plugging down/up of cores using powersuspend"
 	default n
