@@ -24,10 +24,11 @@
 #include <linux/slab.h>
 
 #define INIT_DELAY		(60 * HZ) /* Initial delay to 60 sec */
-#define DELAY			(HZ / 2)
-#define UP_THRESHOLD		(90)
-#define MIN_ONLINE		(1)
-#define MAX_ONLINE		(2)
+#define DEF_ENABLED		(0)
+#define DEF_DELAY		(HZ / 2)
+#define DEF_UP_THRESHOLD	(90)
+#define DEF_MIN_ONLINE		(NR_CPUS / 2)
+#define DEF_MAX_ONLINE		(NR_CPUS)
 #define DEF_DOWN_TIMER_CNT	(6)	/* 3 secs */
 #define DEF_UP_TIMER_CNT	(2)	/* 1 sec */
 
@@ -389,16 +390,16 @@ static int __init dyn_hp_init(void)
 	if (!hp_data)
 		return -ENOMEM;
 
-	hp_data->delay = DELAY;
-	hp_data->up_threshold = UP_THRESHOLD;
-	hp_data->min_online = MIN_ONLINE;
-	hp_data->max_online = MAX_ONLINE;
+	hp_data->delay = DEF_DELAY;
+	hp_data->up_threshold = DEF_UP_THRESHOLD;
+	hp_data->min_online = DEF_MIN_ONLINE;
+	hp_data->max_online = DEF_MAX_ONLINE;
 	hp_data->down_timer_cnt = DEF_DOWN_TIMER_CNT;
 	hp_data->up_timer_cnt = DEF_UP_TIMER_CNT;
 
 	hp_data->suspend.suspend = hp_power_suspend;
 	hp_data->suspend.resume =  hp_power_resume;
-	hp_data->enabled = 1;
+	hp_data->enabled = DEF_ENABLED;
 
 	up_threshold = hp_data->up_threshold;
 	enabled = hp_data->enabled;
