@@ -516,7 +516,7 @@ static unsigned int uksm_max_cpu_percentage;
 
 static int uksm_cpu_governor = 2;
 
-static char *uksm_cpu_governor_str[4] = { "full", "medium", "low", "quiet" };
+static char *uksm_cpu_governor_str[4] = { "performance", "balanced", "conservative", "battery" };
 
 struct uksm_cpu_preset_s {
 	int cpu_ratio[SCAN_LADDER_SIZE];
