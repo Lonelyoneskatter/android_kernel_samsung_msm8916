@@ -45,6 +45,8 @@
 #define WAKE_LOCK_TIME		(HZ * 5)	/* 5 sec */
 #define ADC_SAMPLE_CNT		1   /* Ear key ADC chekc count */
 
+bool earphones_connected = false;
+
 struct sec_jack_info {
 	struct platform_device *client;
 	struct sec_jack_platform_data *pdata;
@@ -352,6 +354,7 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 			set_sec_micbias_state(hi, false);
 		return;
 	}
+	earphones_connected = true;
 
 	if (jack_type == SEC_HEADSET_4POLE) {
 		/* for a 4 pole headset, enable detection of send/end key */
@@ -362,6 +365,7 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 				hi->dev_id,
 				&sec_jack_input_data,
 				sizeof(sec_jack_input_data));
+				earphones_connected = true;
 		mod_timer(&hi->timer,jiffies + msecs_to_jiffies(1000));
 #if defined (SEC_HEADSET_ADC_ADJUST)
 		/* Update and inform the adc date file */
@@ -400,6 +404,7 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 		is_sec_earjack_on = true;
 		set_earjack_state();
 #endif
+		earphones_connected = true;
 		pr_info("%s: detect time : %d ms\n", __func__, (int)hi->ts.tv_nsec/1000000 );
 	}
 
@@ -462,6 +467,7 @@ static void determine_jack_type(struct sec_jack_info *hi)
 	is_sec_earjack_on = false;
     set_earjack_state();
 #endif
+	earphones_connected = false;
 	set_sec_micbias_state(hi, false);
 }
 
@@ -929,6 +935,7 @@ void sec_jack_detect_work(struct work_struct *work)
 			is_sec_earjack_on = false;
 			set_earjack_state();
 #endif
+			earphones_connected = false;
 			set_sec_micbias_state(hi, false);
 #ifdef CONFIG_SAMSUNG_JACK_WATCH_DOG_RESET_WORK_AROUND
                        enable_irq(hi->det_irq);
@@ -1420,6 +1427,7 @@ static int sec_jack_remove(struct platform_device *pdev)
 	gpio_free(hi->pdata->det_gpio);
 	kfree(hi);
 	atomic_set(&instantiated, 0);
+	earphones_connected = false;
 
 	return 0;
 }
