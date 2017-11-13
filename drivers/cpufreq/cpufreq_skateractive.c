@@ -42,6 +42,7 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/cpufreq_skateractive.h>
 
+extern bool earphones_connected;
 extern bool screen_on;
 
 struct cpufreq_skateractive_cpuinfo {
@@ -90,8 +91,13 @@ static unsigned int default_above_hispeed_delay[] = {
 static unsigned long screen_off_max = DEFAULT_SCREEN_OFF_MAX;
 static unsigned long screen_off_max_prev = DEFAULT_SCREEN_OFF_MAX;
 
-#define DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE 1094400
-static unsigned long screen_off_max_single_core = DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE;
+/* Max frequency to limit while earphones are in & screen is off. */
+#define DEFAULT_EARPHONES_MAX_FREQ_SCREEN_OFF 800000
+static unsigned long earphones_max_freq_screen_off = DEFAULT_EARPHONES_MAX_FREQ_SCREEN_OFF;
+
+/* Frequency cannot go below this if earphones are in and screen is off. */
+#define DEFAULT_EARPHONES_MIN_FREQ_LIMIT 533333
+static unsigned long earphones_min_freq_limit = DEFAULT_EARPHONES_MIN_FREQ_LIMIT;
 
 struct cpufreq_skateractive_tunables {
 	int usage_count;
@@ -691,7 +697,7 @@ static int cpufreq_skateractive_speedchange_task(void *data)
 			unsigned int j;
 			unsigned int max_freq = 0;
 			struct cpufreq_skateractive_cpuinfo *pjcpu;
-			u64 hvt;
+			u64 hvt = 0;
 
 			pcpu = &per_cpu(cpuinfo, cpu);
 			if (!down_read_trylock(&pcpu->enable_sem))
@@ -715,14 +721,14 @@ static int cpufreq_skateractive_speedchange_task(void *data)
 			/* On screen on, return correct value */
 			if (likely(screen_on)) {
 				screen_off_max = screen_off_max_prev;
+			/* If earphone are plugged in & screen is off set to headset frequency settings */
+			} else if (earphones_connected && unlikely(!screen_on)) {
+				if (max_freq > earphones_max_freq_screen_off)
+					max_freq = earphones_max_freq_screen_off;
 			/* If number of online cores is over 1, set to regular screen off frequency */
-			} else if (unlikely(!screen_on) && num_online_cpus() > 1) {
+			} else if (unlikely(!screen_on)) {
 				if (max_freq > screen_off_max)
 					max_freq = screen_off_max;
-			/* If number of online cores is 1, set to single core frequency */
-			} else if (unlikely(!screen_on) && num_online_cpus() == 1) {
-				if (max_freq > screen_off_max_single_core)
-					max_freq = screen_off_max_single_core;
 			}
 
 			if (max_freq != pcpu->policy->cur) {
@@ -1070,41 +1076,52 @@ static ssize_t store_timer_slack(struct cpufreq_skateractive_tunables *tunables,
 }
 
 static ssize_t show_screen_off_maxfreq(struct cpufreq_skateractive_tunables *tunables,
-                char *buf)
+		char *buf)
 {
 	return sprintf(buf, "%lu\n", screen_off_max);
 }
 
 static ssize_t store_screen_off_maxfreq(struct cpufreq_skateractive_tunables *tunables,
-                const char *buf, size_t count)
+		const char *buf, size_t count)
 {
 	int ret;
 	unsigned long val;
 
 	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0) return ret;
-	if (val < 200000) screen_off_max = DEFAULT_SCREEN_OFF_MAX;
-	else screen_off_max = val;
+	if (ret < 0)
+		return ret;
+
+	if (val < 0)
+		screen_off_max = DEFAULT_SCREEN_OFF_MAX;
+
+	screen_off_max = val;
 	screen_off_max_prev = val;
+
 	return count;
 }
 
-static ssize_t show_screen_off_maxfreq_single_core(struct cpufreq_skateractive_tunables *tunables,
-                char *buf)
+static ssize_t show_earphones_max_freq_screen_off(struct cpufreq_skateractive_tunables *tunables,
+		char *buf)
 {
-	return sprintf(buf, "%lu\n", screen_off_max_single_core);
+	return sprintf(buf, "%lu\n", earphones_max_freq_screen_off);
 }
 
-static ssize_t store_screen_off_maxfreq_single_core(struct cpufreq_skateractive_tunables *tunables,
-                const char *buf, size_t count)
+static ssize_t store_earphones_max_freq_screen_off(struct cpufreq_skateractive_tunables *tunables,
+		const char *buf, size_t count)
 {
 	int ret;
 	unsigned long val;
 
 	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0) return ret;
-	if (val < 200000) screen_off_max_single_core = DEFAULT_SCREEN_OFF_MAX_SINGLE_CORE;
-	else screen_off_max_single_core = val;
+	if (ret < 0)
+		return ret;
+
+	/* Return min freq limit if it reaches below this */
+	if (val < earphones_min_freq_limit)
+		val = earphones_min_freq_limit;
+
+	earphones_max_freq_screen_off = val;
+
 	return count;
 }
 
@@ -1216,7 +1233,7 @@ show_store_gov_pol_sys(io_is_busy);
 show_store_gov_pol_sys(sampling_down_factor);
 show_store_gov_pol_sys(align_windows);
 show_store_gov_pol_sys(screen_off_maxfreq);
-show_store_gov_pol_sys(screen_off_maxfreq_single_core);
+show_store_gov_pol_sys(earphones_max_freq_screen_off);
 show_store_gov_pol_sys(fastlane);
 show_store_gov_pol_sys(fastlane_threshold);
 
@@ -1244,7 +1261,7 @@ gov_sys_pol_attr_rw(io_is_busy);
 gov_sys_pol_attr_rw(sampling_down_factor);
 gov_sys_pol_attr_rw(align_windows);
 gov_sys_pol_attr_rw(screen_off_maxfreq);
-gov_sys_pol_attr_rw(screen_off_maxfreq_single_core);
+gov_sys_pol_attr_rw(earphones_max_freq_screen_off);
 gov_sys_pol_attr_rw(fastlane);
 gov_sys_pol_attr_rw(fastlane_threshold);
 
@@ -1262,7 +1279,7 @@ static struct attribute *skateractive_attributes_gov_sys[] = {
 	&sampling_down_factor_gov_sys.attr,
 	&align_windows_gov_sys.attr,
 	&screen_off_maxfreq_gov_sys.attr,
-	&screen_off_maxfreq_single_core_gov_sys.attr,
+	&earphones_max_freq_screen_off_gov_sys.attr,
 	&fastlane_gov_sys.attr,
 	&fastlane_threshold_gov_sys.attr,
 	NULL,
@@ -1287,7 +1304,7 @@ static struct attribute *skateractive_attributes_gov_pol[] = {
 	&sampling_down_factor_gov_pol.attr,
 	&align_windows_gov_pol.attr,
 	&screen_off_maxfreq_gov_pol.attr,
-	&screen_off_maxfreq_single_core_gov_pol.attr,
+	&earphones_max_freq_screen_off_gov_pol.attr,
 	&fastlane_gov_pol.attr,
 	&fastlane_threshold_gov_pol.attr,
 	NULL,
@@ -1589,6 +1606,7 @@ static int __init cpufreq_skateractive_init(void)
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
 
 	screen_on = true;
+	earphones_connected = false;
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
