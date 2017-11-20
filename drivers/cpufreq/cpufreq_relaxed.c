@@ -453,7 +453,7 @@ static struct cs_dbs_tuners *alloc_tuners(struct cpufreq_policy *policy)
 	tuners = kzalloc(sizeof(*tuners), GFP_KERNEL);
 	if (!tuners) {
 		pr_err("%s: kzalloc failed\n", __func__);
-		return ERR_PTR(-ENOMEM);
+		return -ENOMEM;
 	}
 
 	tuners->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
@@ -489,8 +489,7 @@ static int cs_init(struct dbs_data *dbs_data, struct cpufreq_policy *policy)
 	tuners = restore_tuners(policy);
 	if (!tuners) {
 		tuners = alloc_tuners(policy);
-		if (IS_ERR(tuners))
-			return PTR_ERR(tuners);
+		return tuners;
 	}
 
 	dbs_data->tuners = tuners;
