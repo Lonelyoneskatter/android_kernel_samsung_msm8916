@@ -23,6 +23,10 @@
 #include <asm/cacheflush.h>
 #include <soc/qcom/scm.h>
 #include <linux/powersuspend.h>
+#include <linux/state_notifier.h>
+
+#include "adreno_idler.h"
+#include "simple_gpu_algorithm.h"
 #include "governor.h"
 
 static DEFINE_SPINLOCK(tz_lock);
@@ -173,16 +177,6 @@ static int tz_init(struct devfreq_msm_adreno_tz_data *priv,
 	return ret;
 }
 
-#ifdef CONFIG_SIMPLE_GPU_ALGORITHM
-extern int simple_gpu_active;
-extern int simple_gpu_algorithm(int level,
-				struct devfreq_msm_adreno_tz_data *priv);
-#endif
-
-#ifdef CONFIG_ADRENO_IDLER
-extern int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
-		 unsigned long *freq);
-#endif
 static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 				u32 *flag)
 {
@@ -199,25 +193,30 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 		return result;
 	}
 
-	/*
-	 * Force to use & record as min freq when system has
-	 * entered pm-suspend or screen-off state.
-	 */
-	if (suspended || power_suspended) {
-		*freq = devfreq->profile->freq_table[devfreq->profile->max_state - 1];
-		return 0;
-	}
+#ifdef CONFIG_ADRENO_IDLER
+	if (adreno_idler_active) {
+		/*
+		 * Force to use & record as min freq when system has
+		 * entered pm-suspend or screen-off state.
+		 */
+		if (suspended || power_suspended || state_suspended) {
+			*freq = devfreq->profile->freq_table[devfreq->profile->max_state - 1];
+			return 0;
+		}
 
-	/* Prevent overflow */
-	if (stats.busy_time >= (1 << 24) || stats.total_time >= (1 << 24)) {
-		stats.busy_time >>= 7;
-		stats.total_time >>= 7;
 	}
+		/* Prevent overflow */
+		if (stats.busy_time >= (1 << 24) || stats.total_time >= (1 << 24)) {
+			stats.busy_time >>= 7;
+			stats.total_time >>= 7;
+		}
+#endif
 
 	*freq = stats.current_frequency;
 
 #ifdef CONFIG_ADRENO_IDLER
-	if (adreno_idler(stats, devfreq, freq)) {
+	if (adreno_idler_active &&
+			adreno_idler(stats, devfreq, freq)) {
 		/* adreno_idler has asked to bail out now */
 		return 0;
 	}
@@ -252,7 +251,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 		val = -1 * level;
 	} else {
 #ifdef CONFIG_SIMPLE_GPU_ALGORITHM
-		if (simple_gpu_active != 0) {
+		if (simple_gpu_active > 0) {
 			val = simple_gpu_algorithm(level, priv);
 		} else {
 #endif
