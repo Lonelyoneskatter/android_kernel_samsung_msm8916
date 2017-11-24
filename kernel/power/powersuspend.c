@@ -28,6 +28,8 @@
  *
  *  v1.7.4 - make state_notifier disable power_suspend if enabled.
  *
+ *  v1.7.5 - when state notifier is disabled, restore to previous powersuspend state.
+ *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -47,7 +49,7 @@
 
 #define MAJOR_VERSION	1
 #define MINOR_VERSION	7
-#define MINOR_UPDATE	4
+#define MINOR_UPDATE	5
 
 struct workqueue_struct *power_suspend_work_queue;
 
@@ -61,6 +63,7 @@ static DEFINE_SPINLOCK(state_lock);
 
 static int state; // Yank555.lu : Current powersave state (screen on / off)
 static int mode;  // Yank555.lu : Current powersave mode  (userspace / panel / hybrid / autosleep)
+static int mode_prev; // Lonelyoneskatter : Save previous mode
 
 extern bool screen_on;
 
@@ -251,6 +254,7 @@ static ssize_t power_suspend_mode_store(struct kobject *kobj,
 		case POWER_SUSPEND_PANEL:
 		case POWER_SUSPEND_USERSPACE:
 		case POWER_SUSPEND_HYBRID:	mode = data;
+						mode_prev = data;
 						return count;
 		default:
 			return -EINVAL;
@@ -325,6 +329,13 @@ static int __init power_suspend_init(void)
 //	mode = POWER_SUSPEND_PANEL;	// Yank555.lu : Default to display panel mode
 //	mode = POWER_SUSPEND_AUTOSLEEP;	// Yank555.lu : Default to autosleep mode
 	mode = POWER_SUSPEND_HYBRID;	// Yank555.lu : Default to display panel / autosleep hybrid mode
+	mode_prev = POWER_SUSPEND_HYBRID;
+
+	if (is_state_notifier_enabled()) {
+		mode = POWER_SUSPEND_USERSPACE;
+	} else {
+		mode = mode_prev;
+	}
 
 	return 0;
 }
