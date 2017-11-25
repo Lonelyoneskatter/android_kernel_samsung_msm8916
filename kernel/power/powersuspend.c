@@ -61,9 +61,9 @@ static DECLARE_WORK(power_suspend_work, power_suspend);
 static DECLARE_WORK(power_resume_work, power_resume);
 static DEFINE_SPINLOCK(state_lock);
 
-static int state; // Yank555.lu : Current powersave state (screen on / off)
-static int mode;  // Yank555.lu : Current powersave mode  (userspace / panel / hybrid / autosleep)
-static int mode_prev; // Lonelyoneskatter : Save previous mode
+static int state;
+static int mode;
+static int mode_prev;
 
 extern bool screen_on;
 
@@ -165,12 +165,12 @@ void set_power_suspend_state(int new_state)
 		spin_lock_irqsave(&state_lock, irqflags);
 		if (state == POWER_SUSPEND_INACTIVE && new_state == POWER_SUSPEND_ACTIVE) {
 			state = new_state;
-                        power_suspended = true;
+			power_suspended = true;
 			queue_work(system_power_efficient_wq,
 				&power_suspend_work);
 		} else if (state == POWER_SUSPEND_ACTIVE && new_state == POWER_SUSPEND_INACTIVE) {
 			state = new_state;
-                        power_suspended = true;
+			power_suspended = true;
 			queue_work(system_power_efficient_wq,
 				&power_resume_work);
 		}
@@ -183,7 +183,6 @@ void set_power_suspend_state_autosleep_hook(int new_state)
 	if (is_state_notifier_enabled() || mode == POWER_SUSPEND_USERSPACE)
 		return;
 
-	// Yank555.lu : Only allow autosleep hook changes in autosleep & hybrid mode
 	if (mode == POWER_SUSPEND_AUTOSLEEP || mode == POWER_SUSPEND_HYBRID)
 		set_power_suspend_state(new_state);
 }
@@ -195,7 +194,6 @@ void set_power_suspend_state_panel_hook(int new_state)
 	if (is_state_notifier_enabled() || mode == POWER_SUSPEND_USERSPACE)
 		return;
 
-	// Yank555.lu : Only allow panel hook changes in panel mode
 	if (mode == POWER_SUSPEND_PANEL || mode == POWER_SUSPEND_HYBRID)
 		set_power_suspend_state(new_state);
 }
@@ -207,7 +205,7 @@ EXPORT_SYMBOL(set_power_suspend_state_panel_hook);
 static ssize_t power_suspend_state_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
-        return sprintf(buf, "%u\n", state);
+	return sprintf(buf, "%u\n", state);
 }
 
 static ssize_t power_suspend_state_store(struct kobject *kobj,
@@ -215,7 +213,6 @@ static ssize_t power_suspend_state_store(struct kobject *kobj,
 {
 	int new_state = 0;
 
-	// Yank555.lu : Only allow sysfs changes from userspace mode
 	if (mode != POWER_SUSPEND_USERSPACE)
 		return -EINVAL;
 
@@ -259,7 +256,6 @@ static ssize_t power_suspend_mode_store(struct kobject *kobj,
 		default:
 			return -EINVAL;
 	}
-	
 }
 
 static struct kobj_attribute power_suspend_mode_attribute =
@@ -301,34 +297,34 @@ static int __init power_suspend_init(void)
 
 	screen_on = true;
 
-        power_suspend_kobj = kobject_create_and_add("power_suspend",
-				kernel_kobj);
-        if (!power_suspend_kobj) {
-                pr_err("%s kobject create failed!\n", __FUNCTION__);
-                return -ENOMEM;
-        }
+	power_suspend_kobj = kobject_create_and_add("power_suspend",
+			kernel_kobj);
+	if (!power_suspend_kobj) {
+		pr_err("%s kobject create failed!\n", __FUNCTION__);
+		return -ENOMEM;
+	}
 
-        sysfs_result = sysfs_create_group(power_suspend_kobj,
+	sysfs_result = sysfs_create_group(power_suspend_kobj,
 			&power_suspend_attr_group);
 
-        if (sysfs_result) {
-                pr_info("%s group create failed!\n", __FUNCTION__);
-                kobject_put(power_suspend_kobj);
-                return -ENOMEM;
-        }
+	if (sysfs_result) {
+		pr_info("%s group create failed!\n", __FUNCTION__);
+		kobject_put(power_suspend_kobj);
+		return -ENOMEM;
+	}
 
 	power_suspend_work_queue =
-	    alloc_workqueue("power_suspend",
-			    WQ_HIGHPRI | WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
+		alloc_workqueue("power_suspend",
+			WQ_HIGHPRI | WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
 
 	if (power_suspend_work_queue == NULL) {
 		return -ENOMEM;
 	}
 
-//	mode = POWER_SUSPEND_USERSPACE;	// Yank555.lu : Default to userspace mode
-//	mode = POWER_SUSPEND_PANEL;	// Yank555.lu : Default to display panel mode
-//	mode = POWER_SUSPEND_AUTOSLEEP;	// Yank555.lu : Default to autosleep mode
-	mode = POWER_SUSPEND_HYBRID;	// Yank555.lu : Default to display panel / autosleep hybrid mode
+//	mode = POWER_SUSPEND_USERSPACE;
+//	mode = POWER_SUSPEND_PANEL;
+//	mode = POWER_SUSPEND_AUTOSLEEP;
+	mode = POWER_SUSPEND_HYBRID;
 	mode_prev = POWER_SUSPEND_HYBRID;
 
 	if (is_state_notifier_enabled()) {
@@ -346,12 +342,12 @@ static void __exit power_suspend_exit(void)
 		kobject_put(power_suspend_kobj);
 
 	destroy_workqueue(power_suspend_work_queue);
-} 
+}
 
 core_initcall(power_suspend_init);
 module_exit(power_suspend_exit);
 
 MODULE_AUTHOR("Paul Reioux <reioux@gmail.com> / Jean-Pierre Rasquin <yank555.lu@gmail.com>");
 MODULE_DESCRIPTION("power_suspend - A replacement kernel PM driver for"
-        "Android's deprecated early_suspend/late_resume PM driver!");
+	"Android's deprecated early_suspend/late_resume PM driver!");
 MODULE_LICENSE("GPL v2");
