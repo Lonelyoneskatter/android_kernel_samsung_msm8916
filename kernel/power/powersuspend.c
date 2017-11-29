@@ -30,6 +30,8 @@
  *
  *  v1.7.5 - when state notifier is disabled, restore to previous powersuspend state.
  *
+ *  V1.7.6 - fixup mutex locks.
+ *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -49,7 +51,7 @@
 
 #define MAJOR_VERSION	1
 #define MINOR_VERSION	7
-#define MINOR_UPDATE	5
+#define MINOR_UPDATE	6
 
 struct workqueue_struct *power_suspend_work_queue;
 
@@ -64,9 +66,7 @@ static DEFINE_SPINLOCK(state_lock);
 static int state;
 static int mode;
 static int mode_prev;
-
 extern bool screen_on;
-
 extern bool is_state_notifier_enabled(void);
 
 void register_power_suspend(struct power_suspend *handler)
@@ -108,21 +108,16 @@ static void power_suspend(struct work_struct *work)
 
 	mutex_lock(&power_suspend_lock);
 	spin_lock_irqsave(&state_lock, irqflags);
-	if (unlikely(!screen_on) && state != POWER_SUSPEND_ACTIVE)
+	if (unlikely(!screen_on) && (state != POWER_SUSPEND_ACTIVE))
 		state = POWER_SUSPEND_ACTIVE;
 	spin_unlock_irqrestore(&state_lock, irqflags);
-
-	if (unlikely(!screen_on) && state == POWER_SUSPEND_INACTIVE)
-		goto abort_suspend;
+	mutex_unlock(&power_suspend_lock);
 
 	list_for_each_entry(pos, &power_suspend_handlers, link) {
 		if (pos->suspend != NULL) {
 			pos->suspend(pos);
 		}
 	}
-
-abort_suspend:
-	mutex_unlock(&power_suspend_lock);
 }
 
 static void power_resume(struct work_struct *work)
@@ -135,21 +130,16 @@ static void power_resume(struct work_struct *work)
 
 	mutex_lock(&power_suspend_lock);
 	spin_lock_irqsave(&state_lock, irqflags);
-	if (likely(screen_on) && state != POWER_SUSPEND_INACTIVE)
+	if (likely(screen_on) && (state != POWER_SUSPEND_INACTIVE))
 		state = POWER_SUSPEND_INACTIVE;
 	spin_unlock_irqrestore(&state_lock, irqflags);
-
-	if (likely(screen_on) && state == POWER_SUSPEND_ACTIVE)
-		goto abort_resume;
+	mutex_unlock(&power_suspend_lock);
 
 	list_for_each_entry_reverse(pos, &power_suspend_handlers, link) {
 		if (pos->resume != NULL) {
 			pos->resume(pos);
 		}
 	}
-
-abort_resume:
-	mutex_unlock(&power_suspend_lock);
 }
 
 bool power_suspended = false;
@@ -166,12 +156,12 @@ void set_power_suspend_state(int new_state)
 		if (state == POWER_SUSPEND_INACTIVE && new_state == POWER_SUSPEND_ACTIVE) {
 			state = new_state;
 			power_suspended = true;
-			queue_work(system_power_efficient_wq,
+			queue_work_on(0, system_power_efficient_wq,
 				&power_suspend_work);
 		} else if (state == POWER_SUSPEND_ACTIVE && new_state == POWER_SUSPEND_INACTIVE) {
 			state = new_state;
 			power_suspended = true;
-			queue_work(system_power_efficient_wq,
+			queue_work_on(0, system_power_efficient_wq,
 				&power_resume_work);
 		}
 		spin_unlock_irqrestore(&state_lock, irqflags);
@@ -186,7 +176,6 @@ void set_power_suspend_state_autosleep_hook(int new_state)
 	if (mode == POWER_SUSPEND_AUTOSLEEP || mode == POWER_SUSPEND_HYBRID)
 		set_power_suspend_state(new_state);
 }
-
 EXPORT_SYMBOL(set_power_suspend_state_autosleep_hook);
 
 void set_power_suspend_state_panel_hook(int new_state)
@@ -197,7 +186,6 @@ void set_power_suspend_state_panel_hook(int new_state)
 	if (mode == POWER_SUSPEND_PANEL || mode == POWER_SUSPEND_HYBRID)
 		set_power_suspend_state(new_state);
 }
-
 EXPORT_SYMBOL(set_power_suspend_state_panel_hook);
 
 // ------------------------------------------ sysfs interface ------------------------------------------
@@ -315,7 +303,8 @@ static int __init power_suspend_init(void)
 
 	power_suspend_work_queue =
 		alloc_workqueue("power_suspend",
-			WQ_HIGHPRI | WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
+			WQ_POWER_EFFICIENT | WQ_HIGHPRI |
+				WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
 
 	if (power_suspend_work_queue == NULL) {
 		return -ENOMEM;
